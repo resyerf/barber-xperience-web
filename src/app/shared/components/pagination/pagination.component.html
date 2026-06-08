@@ -1,0 +1,11 @@
+@if (totalPages() > 1) {
+  <div class="pagination-bar">
+    <button class="btn-outline-accent" [disabled]="currentPage() === 1" (click)="prev()">
+      <i class="bi bi-chevron-left"></i>
+    </button>
+    <span class="pagination-info">{{ currentPage() }} / {{ totalPages() }}</span>
+    <button class="btn-outline-accent" [disabled]="currentPage() === totalPages()" (click)="next()">
+      <i class="bi bi-chevron-right"></i>
+    </button>
+  </div>
+}

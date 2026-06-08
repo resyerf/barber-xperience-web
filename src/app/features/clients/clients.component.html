@@ -1,0 +1,58 @@
+<app-page-header title="Clientes" subtitle="Base de clientes registrados" icon="bi-people" />
+
+<div class="card-barberia p-3 mb-4 d-flex gap-3">
+  <input [(ngModel)]="search" (ngModelChange)="onSearch()" class="form-control-dark filter-input"
+    placeholder="Buscar cliente...">
+  <span class="text-muted-dark ms-auto filter-count">{{ result()?.totalCount ?? 0 }} clientes</span>
+</div>
+
+<div class="card-barberia">
+  @if (loading()) {
+    <app-loading-spinner />
+  } @else {
+    <table class="table-barberia">
+      <thead>
+        <tr>
+          <th>Cliente</th>
+          <th>Email</th>
+          <th>Teléfono</th>
+          <th>Promociones</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (client of result()?.items ?? []; track client.id) {
+          <tr>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <app-avatar [initials]="client.fullName[0]" size="sm" />
+                {{ client.fullName }}
+              </div>
+            </td>
+            <td>{{ client.email }}</td>
+            <td>{{ client.phoneNumber ?? '—' }}</td>
+            <td>
+              <span class="badge-status"
+                [class.active]="client.receivesPromotions"
+                [class.inactive]="!client.receivesPromotions">
+                {{ client.receivesPromotions ? 'Sí' : 'No' }}
+              </span>
+            </td>
+            <td>
+              <button class="btn-outline-accent btn-history">
+                <i class="bi bi-eye me-1"></i>Ver historial
+              </button>
+            </td>
+          </tr>
+        }
+        @if (!result()?.items?.length) {
+          <tr>
+            <td colspan="5">
+              <app-empty-state icon="bi-people" message="No se encontraron clientes" />
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>

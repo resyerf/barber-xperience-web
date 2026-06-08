@@ -1,0 +1,132 @@
+<app-page-header title="Nueva Reserva" subtitle="Agenda tu cita en 4 pasos" icon="bi-calendar-plus" />
+
+<div class="step-indicator mb-4">
+  @for (step of steps; track step.num) {
+    <div class="step-item" [class.active]="currentStep() >= step.num">
+      <i [class]="'bi ' + step.icon + ' step-icon'"></i>
+      {{ step.label }}
+    </div>
+  }
+</div>
+
+<div class="card-barberia p-4">
+  @if (currentStep() === 1) {
+    <h5 class="step-title">1. Elige el Servicio</h5>
+    @if (loadingServices()) {
+      <app-loading-spinner />
+    } @else {
+      <div class="row g-3">
+        @for (service of services(); track service.id) {
+          <div class="col-md-6 col-lg-4">
+            <div class="selection-card" [class.selected]="selectedServiceId() === service.id" (click)="selectService(service)">
+              <div class="d-flex justify-content-between">
+                <div class="service-name">{{ service.name }}</div>
+                <div class="service-price">S/ {{ service.price | number:'1.2-2' }}</div>
+              </div>
+              <div class="service-meta">
+                <i class="bi bi-clock me-1"></i>{{ service.durationMinutes }} min
+              </div>
+              @if (selectedServiceId() === service.id) {
+                <i class="bi bi-check-circle-fill text-accent selection-check"></i>
+              }
+            </div>
+          </div>
+        }
+      </div>
+      <div class="step-actions mt-4 d-flex justify-content-end">
+        <button class="btn-accent" [disabled]="!selectedServiceId()" (click)="currentStep.set(2)">
+          Siguiente <i class="bi bi-arrow-right ms-2"></i>
+        </button>
+      </div>
+    }
+  }
+
+  @if (currentStep() === 2) {
+    <h5 class="step-title">2. Elige el Barbero</h5>
+    <div class="row g-3">
+      @for (barber of barbers(); track barber.id) {
+        <div class="col-md-6 col-lg-4">
+          <div class="selection-card" [class.selected]="selectedBarberId() === barber.id" (click)="selectedBarberId.set(barber.id)">
+            <div class="d-flex align-items-center gap-3">
+              <app-avatar [initials]="barber.fullName[0]" size="md" />
+              <div>
+                <div class="barber-name">{{ barber.fullName }}</div>
+                <div class="barber-specialty">{{ barber.specialties }}</div>
+                <span class="text-warning-dark rating-sm">
+                  <i class="bi bi-star-fill"></i> {{ barber.averageRating | number:'1.1-1' }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+    <div class="step-actions mt-4 d-flex justify-content-between">
+      <button class="btn-outline-accent" (click)="currentStep.set(1)">
+        <i class="bi bi-arrow-left me-2"></i>Atrás
+      </button>
+      <button class="btn-accent" [disabled]="!selectedBarberId()" (click)="currentStep.set(3)">
+        Siguiente <i class="bi bi-arrow-right ms-2"></i>
+      </button>
+    </div>
+  }
+
+  @if (currentStep() === 3) {
+    <h5 class="step-title">3. Fecha y Hora</h5>
+    <div class="row g-4">
+      <div class="col-md-6">
+        <label class="form-label-dark">Fecha</label>
+        <input type="date" [min]="minDate" class="form-control-dark" [value]="selectedDate()" (change)="onDateChange($event)">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label-dark">Hora de Inicio</label>
+        <select class="form-control-dark" [value]="selectedTime()" (change)="onTimeChange($event)">
+          <option value="">Selecciona una hora</option>
+          @for (slot of timeSlots; track slot) {
+            <option [value]="slot">{{ slot }}</option>
+          }
+        </select>
+      </div>
+    </div>
+    <div class="step-actions mt-4 d-flex justify-content-between">
+      <button class="btn-outline-accent" (click)="currentStep.set(2)">
+        <i class="bi bi-arrow-left me-2"></i>Atrás
+      </button>
+      <button class="btn-accent" [disabled]="!selectedDate() || !selectedTime()" (click)="currentStep.set(4)">
+        Siguiente <i class="bi bi-arrow-right ms-2"></i>
+      </button>
+    </div>
+  }
+
+  @if (currentStep() === 4) {
+    <h5 class="step-title">4. Confirmar Reserva</h5>
+    <div class="card-barberia p-3 mb-4">
+      <div class="row g-2 summary-grid">
+        <div class="col-6 summary-label">Servicio:</div>
+        <div class="col-6 summary-value">{{ getSelectedServiceName() }}</div>
+        <div class="col-6 summary-label">Barbero:</div>
+        <div class="col-6 summary-value">{{ getSelectedBarberName() }}</div>
+        <div class="col-6 summary-label">Fecha:</div>
+        <div class="col-6 summary-value">{{ selectedDate() | date:'dd/MM/yyyy' }}</div>
+        <div class="col-6 summary-label">Hora:</div>
+        <div class="col-6 summary-value">{{ selectedTime() }}</div>
+        <div class="col-6 summary-label">Total:</div>
+        <div class="col-6 summary-value text-accent">S/ {{ getSelectedServicePrice() | number:'1.2-2' }}</div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label-dark">Notas Adicionales (opcional)</label>
+      <textarea [(ngModel)]="notes" class="form-control-dark textarea-notes" rows="3"
+        placeholder="Alguna preferencia o indicación especial..."></textarea>
+    </div>
+    <div class="step-actions d-flex justify-content-between">
+      <button class="btn-outline-accent" (click)="currentStep.set(3)">
+        <i class="bi bi-arrow-left me-2"></i>Atrás
+      </button>
+      <button class="btn-accent" [disabled]="submitting()" (click)="submit()">
+        @if (submitting()) { <span class="spinner-border spinner-border-sm me-2"></span> }
+        <i class="bi bi-calendar-check me-2"></i>Confirmar Reserva
+      </button>
+    </div>
+  }
+</div>

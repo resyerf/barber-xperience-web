@@ -1,0 +1,100 @@
+<app-page-header title="Reservas" subtitle="Gestión completa de citas y reservas" icon="bi-calendar-check">
+  <a routerLink="/reservations/new" class="btn-accent">
+    <i class="bi bi-calendar-plus me-2"></i>Nueva Reserva
+  </a>
+</app-page-header>
+
+<div class="card-barberia p-3 mb-4">
+  <div class="row g-3 align-items-center">
+    <div class="col-md-3">
+      <input type="date" [(ngModel)]="dateFrom" class="form-control-dark" (change)="loadReservations()">
+    </div>
+    <div class="col-md-3">
+      <input type="date" [(ngModel)]="dateTo" class="form-control-dark" (change)="loadReservations()">
+    </div>
+    <div class="col-md-3">
+      <select [(ngModel)]="statusFilter" (ngModelChange)="loadReservations()" class="form-control-dark">
+        <option value="">Todos los estados</option>
+        @for (s of statusOptions; track s.value) {
+          <option [value]="s.value">{{ s.label }}</option>
+        }
+      </select>
+    </div>
+    <div class="col-md-3">
+      <span class="text-muted-dark filter-count">{{ result()?.totalCount ?? 0 }} reservas</span>
+    </div>
+  </div>
+</div>
+
+<div class="card-barberia">
+  @if (loading()) {
+    <app-loading-spinner />
+  } @else {
+    <table class="table-barberia">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Cliente</th>
+          <th>Barbero</th>
+          <th>Servicio</th>
+          <th>Fecha &amp; Hora</th>
+          <th>Monto</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (r of result()?.items ?? []; track r.id) {
+          <tr>
+            <td><span class="code-text">{{ r.confirmationCode }}</span></td>
+            <td>{{ r.clientName }}</td>
+            <td>{{ r.barberName }}</td>
+            <td>{{ r.serviceName ?? r.packageName }}</td>
+            <td>
+              <div class="reservation-date">{{ r.reservationDate | date:'dd/MM/yyyy' }}</div>
+              <div class="reservation-time">{{ r.startTime | slice:0:5 }}</div>
+            </td>
+            <td class="text-success-dark">S/ {{ r.totalAmount | number:'1.2-2' }}</td>
+            <td>
+              <span class="badge-status"
+                [class.pending]="r.status === 1"
+                [class.confirmed]="r.status === 2"
+                [class.completed]="r.status === 4"
+                [class.cancelled]="r.status === 5">
+                {{ r.statusLabel }}
+              </span>
+            </td>
+            <td>
+              <div class="d-flex gap-1">
+                @if (r.status === 1) {
+                  <button class="btn-accent btn-action" (click)="confirm(r.id)">
+                    <i class="bi bi-check-lg"></i>
+                  </button>
+                }
+                @if (r.status !== 4 && r.status !== 5) {
+                  <button class="btn-outline-accent btn-action btn-danger-outline" (click)="cancel(r.id)">
+                    <i class="bi bi-x-lg"></i>
+                  </button>
+                }
+                @if (r.status === 2) {
+                  <button class="btn-outline-accent btn-action" (click)="complete(r.id)">
+                    <i class="bi bi-check-circle"></i>
+                  </button>
+                }
+              </div>
+            </td>
+          </tr>
+        }
+        @if (!result()?.items?.length) {
+          <tr>
+            <td colspan="8">
+              <app-empty-state icon="bi-calendar-x" message="No se encontraron reservas" />
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+
+    <app-pagination [currentPage]="page" [totalPages]="result()?.totalPages ?? 0" (pageChange)="changePage($event)" />
+  }
+</div>

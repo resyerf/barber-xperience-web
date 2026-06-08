@@ -1,0 +1,152 @@
+<app-page-header title="Paquetes y Combos" subtitle="Ofertas y promociones especiales" icon="bi-box-seam">
+  @if (isAdmin()) {
+    <button class="btn-accent" (click)="openModal()">
+      <i class="bi bi-plus-lg me-2"></i>Nuevo Paquete
+    </button>
+  }
+</app-page-header>
+
+@if (loading()) {
+  <app-loading-spinner />
+} @else {
+  <div class="row g-4">
+    @for (pkg of result()?.items ?? []; track pkg.id) {
+      <div class="col-md-6 col-lg-4">
+        <div class="card-barberia p-4">
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+              <div class="package-name">{{ pkg.name }}</div>
+              @if (pkg.discountPercentage > 0) {
+                <span class="badge-status confirmed">{{ pkg.discountPercentage }}% DESCUENTO</span>
+              }
+            </div>
+            <div class="text-end">
+              <div class="package-price">S/ {{ pkg.price | number:'1.2-2' }}</div>
+              <div class="package-duration">{{ pkg.totalDurationMinutes }} min total</div>
+            </div>
+          </div>
+          <div class="package-description">{{ pkg.description }}</div>
+          <div class="mb-3">
+            @for (item of pkg.items; track item.serviceId) {
+              <div class="package-item">
+                <span><i class="bi bi-check2 text-accent me-1"></i>{{ item.serviceName }}</span>
+                @if (item.quantity > 1) {
+                  <span class="package-item-qty">x{{ item.quantity }}</span>
+                }
+              </div>
+            }
+          </div>
+          @if (pkg.validUntil) {
+            <div class="package-validity">
+              <i class="bi bi-clock-history me-1"></i>Válido hasta {{ pkg.validUntil | date:'dd/MM/yyyy' }}
+            </div>
+          }
+          @if (isAdmin()) {
+            <div class="d-flex gap-2 mt-3">
+              <button class="btn-outline-accent" (click)="openEditModal(pkg)">
+                <i class="bi bi-pencil me-1"></i>Editar
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    @if (!result()?.items?.length) {
+      <div class="col-12">
+        <app-empty-state icon="bi-box-seam" message="No hay paquetes disponibles" />
+      </div>
+    }
+  </div>
+}
+
+<!-- Modal Nuevo Paquete -->
+@if (showModal()) {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div class="modal-box modal-box--lg" (click)="$event.stopPropagation()">
+      <div class="modal-header-bar">
+        <h5 class="modal-title-text">
+          <i class="bi bi-box-seam me-2 text-accent"></i>{{ editingId() ? 'Editar Paquete' : 'Nuevo Paquete' }}
+        </h5>
+        <button class="modal-close-btn" (click)="closeModal()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="savePackage()" class="modal-body-content">
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label-dark">Nombre *</label>
+            <input formControlName="name" class="form-control-dark" placeholder="Ej: Corte + Barba Completo">
+            @if (form.get('name')?.invalid && form.get('name')?.touched) {
+              <div class="form-error">Requerido</div>
+            }
+          </div>
+          <div class="col-12">
+            <label class="form-label-dark">Descripción *</label>
+            <textarea formControlName="description" class="form-control-dark textarea-notes" rows="2"
+              placeholder="Descripción del combo..."></textarea>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label-dark">Precio (S/) *</label>
+            <input type="number" formControlName="price" class="form-control-dark" min="0" step="0.50">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label-dark">Descuento (%)</label>
+            <input type="number" formControlName="discountPercentage" class="form-control-dark" min="0" max="100">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label-dark">Válido Desde</label>
+            <input type="date" formControlName="validFrom" class="form-control-dark">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label-dark">Válido Hasta</label>
+            <input type="date" formControlName="validUntil" class="form-control-dark">
+          </div>
+        </div>
+
+        <!-- Servicios del paquete -->
+        <div class="mt-4">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <label class="form-label-dark mb-0">Servicios incluidos</label>
+            <button type="button" class="btn-outline-accent btn-sm-custom" (click)="addItem()">
+              <i class="bi bi-plus me-1"></i>Agregar servicio
+            </button>
+          </div>
+
+          @if (items.length === 0) {
+            <p class="text-muted-dark" style="font-size:0.85rem">Sin servicios agregados. El paquete puede crearse sin servicios.</p>
+          }
+
+          <div formArrayName="items">
+            @for (item of items.controls; track $index) {
+              <div [formGroupName]="$index" class="package-item-row d-flex gap-2 align-items-center mb-2">
+                <select formControlName="serviceId" class="form-control-dark" style="flex:1">
+                  <option value="">-- Seleccionar servicio --</option>
+                  @for (s of availableServices(); track s.id) {
+                    <option [value]="s.id">{{ s.name }} (S/ {{ s.price | number:'1.2-2' }}, {{ s.durationMinutes }} min)</option>
+                  }
+                </select>
+                <input type="number" formControlName="quantity" class="form-control-dark package-qty-input" min="1" max="10" placeholder="Cant.">
+                <button type="button" class="btn-outline-accent btn-danger-outline package-remove-btn" (click)="removeItem($index)">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="modal-footer-bar">
+          <button type="button" class="btn-outline-accent" (click)="closeModal()">Cancelar</button>
+          <button type="submit" class="btn-accent" [disabled]="saving()">
+            @if (saving()) {
+              <span class="spinner-border spinner-border-sm me-2"></span>Guardando...
+            } @else {
+              <i class="bi bi-check-lg me-2"></i>{{ editingId() ? 'Guardar Cambios' : 'Crear Paquete' }}
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

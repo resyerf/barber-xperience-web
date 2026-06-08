@@ -1,0 +1,99 @@
+<app-page-header title="Reportes" subtitle="Análisis y reportes del negocio" icon="bi-bar-chart-line">
+  <div class="d-flex gap-2">
+    <button class="btn-outline-accent btn-export" [disabled]="exporting() !== null" (click)="exportExcel()">
+      @if (exporting() === 'excel') {
+        <span class="spinner-border spinner-border-sm me-1"></span>
+      } @else {
+        <i class="bi bi-file-earmark-excel me-1"></i>
+      }
+      Excel
+    </button>
+    <button class="btn-outline-accent btn-export" [disabled]="exporting() !== null" (click)="exportPdf()">
+      @if (exporting() === 'pdf') {
+        <span class="spinner-border spinner-border-sm me-1"></span>
+      } @else {
+        <i class="bi bi-file-earmark-pdf me-1"></i>
+      }
+      PDF
+    </button>
+  </div>
+</app-page-header>
+
+<div class="card-barberia p-3 mb-4 d-flex gap-3 align-items-center">
+  <div>
+    <label class="form-label-dark">Año</label>
+    <select [(ngModel)]="year" (ngModelChange)="loadStats()" class="form-control-dark report-select">
+      @for (y of years; track y) { <option [value]="y">{{ y }}</option> }
+    </select>
+  </div>
+  <div>
+    <label class="form-label-dark">Mes</label>
+    <select [(ngModel)]="month" (ngModelChange)="loadStats()" class="form-control-dark report-select--month">
+      @for (m of months; track m.value) { <option [value]="m.value">{{ m.label }}</option> }
+    </select>
+  </div>
+</div>
+
+@if (loading()) {
+  <app-loading-spinner />
+} @else if (stats()) {
+  <div class="row g-4">
+    <div class="col-md-3">
+      <app-stat-card icon="bi-calendar3" [value]="stats()!.monthReservations" label="Reservas del Mes" iconClass="blue" />
+    </div>
+    <div class="col-md-3">
+      <app-stat-card icon="bi-currency-dollar" [value]="'S/ ' + (stats()!.monthRevenue | number:'1.0-0')" label="Ingresos del Mes" iconClass="green" />
+    </div>
+    <div class="col-md-3">
+      <app-stat-card icon="bi-people" [value]="stats()!.totalClients" label="Total Clientes" iconClass="gold" />
+    </div>
+    <div class="col-md-3">
+      <app-stat-card icon="bi-scissors" [value]="stats()!.activeBarbers" label="Barberos Activos" iconClass="red" />
+    </div>
+
+    <div class="col-lg-6">
+      <div class="card-barberia p-4">
+        <h6 class="card-section-title">
+          <i class="bi bi-graph-up me-2"></i>Ingresos por Día
+        </h6>
+        @for (day of stats()!.revenueByDay; track day.date) {
+          <div class="list-item-bordered d-flex justify-content-between align-items-center">
+            <span class="report-date">{{ day.date | date:'dd/MM' }}</span>
+            <div class="d-flex gap-3">
+              <span class="report-count">{{ day.reservations }} citas</span>
+              <span class="text-success-dark report-revenue">S/ {{ day.revenue | number:'1.0-0' }}</span>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="card-barberia p-4">
+        <h6 class="card-section-title">
+          <i class="bi bi-star me-2"></i>Servicios Más Vendidos
+        </h6>
+        <table class="table-barberia">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Servicio</th>
+              <th>Citas</th>
+              <th>Ingresos</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (s of stats()!.topServices; track s.serviceName; let i = $index) {
+              <tr>
+                <td class="rank-number">{{ i + 1 }}</td>
+                <td>{{ s.serviceName }}</td>
+                <td>{{ s.count }}</td>
+                <td class="text-success-dark">S/ {{ s.revenue | number:'1.0-0' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+}

@@ -1,0 +1,35 @@
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-name">✂ BARBERIA PRO</div>
+    <div class="brand-sub">Sistema de Gestión</div>
+  </div>
+
+  <nav class="nav-section">
+    <div class="nav-label">Principal</div>
+    @for (item of mainNav; track item.path) {
+      @if (!item.roles || item.roles.includes(userRole() ?? '')) {
+        <a [routerLink]="item.path" routerLinkActive="active" class="nav-item">
+          <i [class]="'bi ' + item.icon"></i>
+          <span>{{ item.label }}</span>
+        </a>
+      }
+    }
+
+    <div class="nav-label nav-label--spaced">Gestión</div>
+    @for (item of mgmtNav; track item.path) {
+      @if (!item.roles || item.roles.includes(userRole() ?? '')) {
+        <a [routerLink]="item.path" routerLinkActive="active" class="nav-item">
+          <i [class]="'bi ' + item.icon"></i>
+          <span>{{ item.label }}</span>
+        </a>
+      }
+    }
+  </nav>
+
+  <div class="sidebar-footer">
+    <button (click)="logout()" class="nav-item nav-item--logout">
+      <i class="bi bi-box-arrow-left"></i>
+      <span>Cerrar Sesión</span>
+    </button>
+  </div>
+</aside>

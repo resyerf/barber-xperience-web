@@ -1,0 +1,14 @@
+<div class="page-header">
+  <div>
+    <div class="page-title">
+      @if (icon()) {
+        <i [class]="'bi ' + icon() + ' me-2 text-accent'"></i>
+      }
+      {{ title() }}
+    </div>
+    @if (subtitle()) {
+      <div class="page-subtitle">{{ subtitle() }}</div>
+    }
+  </div>
+  <ng-content />
+</div>

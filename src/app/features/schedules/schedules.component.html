@@ -1,0 +1,156 @@
+<app-page-header title="Horarios" subtitle="Gestión de disponibilidad semanal" icon="bi-clock">
+  @if (activeBarberId() && activeBarberName()) {
+    <span class="text-muted-dark header-date">
+      <i class="bi bi-scissors me-1"></i>{{ activeBarberName() }}
+    </span>
+  }
+</app-page-header>
+
+<!-- Selector de barbero (solo Admin) -->
+@if (isAdmin()) {
+  <div class="card-barberia p-3 mb-4">
+    <label class="form-label-dark">Selecciona Barbero</label>
+    <select class="form-control-dark filter-select" [value]="activeBarberId()"
+      (change)="selectBarber($any($event.target).value)">
+      <option value="">-- Seleccionar barbero --</option>
+      @for (b of barbers(); track b.id) {
+        <option [value]="b.id">{{ b.fullName }}</option>
+      }
+    </select>
+  </div>
+}
+
+<!-- Contenido de horarios -->
+@if (!activeBarberId()) {
+  @if (isAdmin()) {
+    <app-empty-state icon="bi-person-circle" message="Selecciona un barbero para ver su horario" />
+  } @else {
+    <app-loading-spinner />
+  }
+} @else if (loading()) {
+  <app-loading-spinner />
+} @else {
+  <div class="row g-3">
+    @for (day of dayNames; track day.index) {
+      @let schedule = getScheduleForDay(day.index);
+      <div class="col-md-6 col-lg-4">
+        <div class="card-barberia p-3">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <strong class="schedule-day-name">{{ day.label }}</strong>
+            <span class="badge-status"
+              [class.active]="schedule?.isWorkingDay === true"
+              [class.inactive]="!schedule || schedule.isWorkingDay === false">
+              {{ !schedule ? 'Sin configurar' : (schedule.isWorkingDay ? 'Laboral' : 'Descanso') }}
+            </span>
+          </div>
+
+          @if (schedule?.isWorkingDay) {
+            <div class="schedule-time">
+              <i class="bi bi-clock me-1"></i>{{ schedule!.startTime | slice:0:5 }} — {{ schedule!.endTime | slice:0:5 }}
+            </div>
+            @if (schedule?.breakStart) {
+              <div class="schedule-break">
+                <i class="bi bi-cup-hot me-1"></i>Descanso: {{ schedule!.breakStart | slice:0:5 }} — {{ schedule!.breakEnd | slice:0:5 }}
+              </div>
+            }
+            <div class="schedule-slots">
+              <i class="bi bi-grid me-1"></i>Turnos de {{ schedule!.slotDurationMinutes }} min
+            </div>
+          }
+
+          <button class="btn-outline-accent schedule-edit-btn mt-2" (click)="openEditModal(day)">
+            <i class="bi bi-pencil me-1"></i>{{ schedule ? 'Editar' : 'Configurar' }}
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+}
+
+<!-- Modal Editar Horario -->
+@if (showModal() && editingDay()) {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div class="modal-box" (click)="$event.stopPropagation()">
+      <div class="modal-header-bar">
+        <h5 class="modal-title-text">
+          <i class="bi bi-clock me-2 text-accent"></i>{{ editingDay()!.label }}
+        </h5>
+        <button class="modal-close-btn" (click)="closeModal()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <form [formGroup]="scheduleForm" (ngSubmit)="saveSchedule()" class="modal-body-content">
+        <div class="form-group">
+          <div class="d-flex align-items-center gap-3 mb-3">
+            <label class="form-label-dark mb-0">Día Laboral</label>
+            <div class="schedule-toggle">
+              <input type="checkbox" id="isWorkingDay" formControlName="isWorkingDay" class="schedule-checkbox">
+              <label for="isWorkingDay" class="schedule-toggle-label">
+                {{ scheduleForm.get('isWorkingDay')?.value ? 'Sí' : 'No' }}
+              </label>
+            </div>
+          </div>
+        </div>
+
+        @if (scheduleForm.get('isWorkingDay')?.value) {
+          <div class="row g-3">
+            <div class="col-6">
+              <label class="form-label-dark">Hora de Inicio</label>
+              <input type="time" formControlName="startTime" class="form-control-dark">
+            </div>
+            <div class="col-6">
+              <label class="form-label-dark">Hora de Fin</label>
+              <input type="time" formControlName="endTime" class="form-control-dark">
+            </div>
+            <div class="col-12">
+              <label class="form-label-dark">Duración de Turno (min)</label>
+              <select formControlName="slotDurationMinutes" class="form-control-dark">
+                <option [value]="15">15 min</option>
+                <option [value]="20">20 min</option>
+                <option [value]="30">30 min</option>
+                <option [value]="45">45 min</option>
+                <option [value]="60">60 min</option>
+                <option [value]="90">90 min</option>
+              </select>
+            </div>
+
+            <div class="col-12">
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <input type="checkbox" id="hasBreak" formControlName="hasBreak">
+                <label for="hasBreak" class="form-label-dark mb-0">Agregar descanso / almuerzo</label>
+              </div>
+            </div>
+
+            @if (scheduleForm.get('hasBreak')?.value) {
+              <div class="col-6">
+                <label class="form-label-dark">Inicio Descanso</label>
+                <input type="time" formControlName="breakStart" class="form-control-dark">
+              </div>
+              <div class="col-6">
+                <label class="form-label-dark">Fin Descanso</label>
+                <input type="time" formControlName="breakEnd" class="form-control-dark">
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="alert-error" style="margin-top:8px">
+            <i class="bi bi-info-circle me-2"></i>Este día no tendrá disponibilidad para reservas.
+          </div>
+        }
+
+        <div class="modal-footer-bar">
+          <button type="button" class="btn-outline-accent" (click)="closeModal()">Cancelar</button>
+          <button type="submit" class="btn-accent" [disabled]="saving()">
+            @if (saving()) {
+              <span class="spinner-border spinner-border-sm me-2"></span>
+            } @else {
+              <i class="bi bi-check-lg me-2"></i>
+            }
+            Guardar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

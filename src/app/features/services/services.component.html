@@ -1,0 +1,152 @@
+<app-page-header title="Servicios" subtitle="Catálogo de servicios de barbería" icon="bi-list-stars">
+  @if (isAdmin()) {
+    <button class="btn-accent" (click)="openModal()">
+      <i class="bi bi-plus-lg me-2"></i>Nuevo Servicio
+    </button>
+  }
+</app-page-header>
+
+<!-- Filtro de categorías (dinámico desde la BD) -->
+<div class="d-flex gap-2 flex-wrap mb-4">
+  <button class="btn-category"
+    [class.btn-accent]="categoryFilter === null"
+    [class.btn-outline-accent]="categoryFilter !== null"
+    (click)="setCategory(null)">
+    Todos
+  </button>
+  @for (cat of categories(); track cat.id) {
+    <button class="btn-category"
+      [class.btn-accent]="categoryFilter === cat.id"
+      [class.btn-outline-accent]="categoryFilter !== cat.id"
+      (click)="setCategory(cat.id)"
+      [title]="cat.serviceCount + ' servicios'">
+      {{ cat.name }}
+      @if (cat.serviceCount > 0) {
+        <span class="category-count">{{ cat.serviceCount }}</span>
+      }
+    </button>
+  }
+  @if (categories().length === 0 && !loading()) {
+    <span class="text-muted-dark" style="font-size:0.85rem;padding:5px 0">
+      Sin categorías configuradas
+    </span>
+  }
+</div>
+
+@if (loading()) {
+  <app-loading-spinner />
+} @else {
+  <div class="row g-3">
+    @for (service of result()?.items ?? []; track service.id) {
+      <div class="col-md-6 col-lg-4">
+        <div class="card-barberia p-4">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+              <div class="service-name">{{ service.name }}</div>
+              <span class="badge-status" [class.active]="service.isActive" [class.inactive]="!service.isActive">
+                {{ service.isActive ? 'Activo' : 'Inactivo' }}
+              </span>
+            </div>
+            <div class="service-price">S/ {{ service.price | number:'1.2-2' }}</div>
+          </div>
+          <div class="service-meta">
+            <i class="bi bi-clock me-1"></i>{{ service.durationMinutes }} min
+            &nbsp;•&nbsp;
+            <i class="bi bi-tag me-1"></i>{{ service.categoryName }}
+          </div>
+          @if (isAdmin()) {
+            <div class="d-flex gap-2 flex-wrap mt-2">
+              <button class="btn-outline-accent service-btn-edit" (click)="openEditModal(service)">
+                <i class="bi bi-pencil me-1"></i>Editar
+              </button>
+              <button class="btn-outline-accent" (click)="toggleService(service)"
+                [title]="service.isActive ? 'Desactivar servicio' : 'Activar servicio'">
+                <i class="bi" [class.bi-eye-slash]="service.isActive" [class.bi-eye]="!service.isActive"></i>
+                {{ service.isActive ? 'Desactivar' : 'Activar' }}
+              </button>
+              <button class="btn-outline-accent service-btn-delete btn-danger-outline" (click)="deleteService(service.id)">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    @if (!result()?.items?.length) {
+      <div class="col-12">
+        <app-empty-state icon="bi-list-stars" message="No se encontraron servicios en esta categoría" />
+      </div>
+    }
+  </div>
+}
+
+<!-- Modal Nuevo Servicio -->
+@if (showModal()) {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div class="modal-box" (click)="$event.stopPropagation()">
+      <div class="modal-header-bar">
+        <h5 class="modal-title-text">
+          <i class="bi bi-list-stars me-2 text-accent"></i>{{ editingId() ? 'Editar Servicio' : 'Nuevo Servicio' }}
+        </h5>
+        <button class="modal-close-btn" (click)="closeModal()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="saveService()" class="modal-body-content">
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label-dark">Nombre *</label>
+            <input formControlName="name" class="form-control-dark" placeholder="Ej: Corte clásico">
+            @if (form.get('name')?.invalid && form.get('name')?.touched) {
+              <div class="form-error">Requerido</div>
+            }
+          </div>
+          <div class="col-12">
+            <label class="form-label-dark">Descripción *</label>
+            <textarea formControlName="description" class="form-control-dark textarea-notes" rows="2"
+              placeholder="Descripción del servicio..."></textarea>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label-dark">Categoría *</label>
+            <select formControlName="categoryId" class="form-control-dark">
+              <option value="">-- Seleccionar --</option>
+              @for (cat of categories(); track cat.id) {
+                @if (cat.isActive) {
+                  <option [value]="cat.id">{{ cat.name }}</option>
+                }
+              }
+            </select>
+            @if (form.get('categoryId')?.invalid && form.get('categoryId')?.touched) {
+              <div class="form-error">Selecciona una categoría</div>
+            }
+          </div>
+          <div class="col-md-6">
+            <label class="form-label-dark">Precio (S/) *</label>
+            <input type="number" formControlName="price" class="form-control-dark" min="0" step="0.50">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label-dark">Duración (minutos) *</label>
+            <input type="number" formControlName="durationMinutes" class="form-control-dark" min="5" max="480" step="5">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label-dark">Orden de Visualización</label>
+            <input type="number" formControlName="displayOrder" class="form-control-dark" min="0">
+          </div>
+        </div>
+
+        <div class="modal-footer-bar">
+          <button type="button" class="btn-outline-accent" (click)="closeModal()">Cancelar</button>
+          <button type="submit" class="btn-accent" [disabled]="saving()">
+            @if (saving()) {
+              <span class="spinner-border spinner-border-sm me-2"></span>Guardando...
+            } @else {
+              <i class="bi bi-check-lg me-2"></i>{{ editingId() ? 'Guardar Cambios' : 'Crear Servicio' }}
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

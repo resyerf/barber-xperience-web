@@ -1,0 +1,98 @@
+<app-page-header title="Categorías" subtitle="Gestión de categorías de servicios" icon="bi-tags">
+  <button class="btn-accent" (click)="openModal()">
+    <i class="bi bi-plus-lg me-2"></i>Nueva Categoría
+  </button>
+</app-page-header>
+
+@if (loading()) {
+  <app-loading-spinner />
+} @else if (categories().length === 0) {
+  <app-empty-state icon="bi-tags" message="No hay categorías registradas" />
+} @else {
+  <div class="row g-3">
+    @for (cat of categories(); track cat.id) {
+      <div class="col-md-6 col-lg-4">
+        <div class="card-barberia p-4" [class.opacity-50]="!cat.isActive">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+              <div class="service-name">{{ cat.name }}</div>
+              @if (cat.description) {
+                <div class="text-muted-dark" style="font-size:0.8rem;margin-top:2px">{{ cat.description }}</div>
+              }
+            </div>
+            <span class="badge-status" [class.active]="cat.isActive" [class.inactive]="!cat.isActive">
+              {{ cat.isActive ? 'Activa' : 'Inactiva' }}
+            </span>
+          </div>
+
+          <div class="service-meta mb-3">
+            <i class="bi bi-list-ul me-1"></i>{{ cat.serviceCount }} servicio(s)
+            &nbsp;•&nbsp;
+            <i class="bi bi-sort-numeric-up me-1"></i>Orden {{ cat.displayOrder }}
+          </div>
+
+          <div class="d-flex gap-2 flex-wrap">
+            <button class="btn-outline-accent service-btn-edit" (click)="openEditModal(cat)">
+              <i class="bi bi-pencil me-1"></i>Editar
+            </button>
+            <button class="btn-outline-accent" (click)="toggleCategory(cat)"
+              [title]="cat.isActive ? 'Desactivar categoría' : 'Activar categoría'">
+              <i class="bi" [class.bi-eye-slash]="cat.isActive" [class.bi-eye]="!cat.isActive"></i>
+              {{ cat.isActive ? 'Desactivar' : 'Activar' }}
+            </button>
+            <button class="btn-outline-accent service-btn-delete btn-danger-outline"
+              (click)="deleteCategory(cat)" [title]="cat.serviceCount > 0 ? 'Tiene servicios asociados' : 'Eliminar'">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+}
+
+<!-- Modal -->
+@if (showModal()) {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div class="modal-box" (click)="$event.stopPropagation()">
+      <div class="modal-header-bar">
+        <h5 class="modal-title-text">
+          <i class="bi bi-tags me-2 text-accent"></i>{{ editingId() ? 'Editar Categoría' : 'Nueva Categoría' }}
+        </h5>
+        <button class="modal-close-btn" (click)="closeModal()"><i class="bi bi-x-lg"></i></button>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="saveCategory()" class="modal-body-content">
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label-dark">Nombre *</label>
+            <input formControlName="name" class="form-control-dark" placeholder="Ej: Corte, Barba, Color...">
+            @if (form.get('name')?.invalid && form.get('name')?.touched) {
+              <div class="form-error">Requerido (máx. 100 caracteres)</div>
+            }
+          </div>
+          <div class="col-12">
+            <label class="form-label-dark">Descripción</label>
+            <textarea formControlName="description" class="form-control-dark textarea-notes" rows="2"
+              placeholder="Descripción opcional..."></textarea>
+          </div>
+          <div class="col-12">
+            <label class="form-label-dark">Orden de Visualización</label>
+            <input type="number" formControlName="displayOrder" class="form-control-dark" min="0">
+          </div>
+        </div>
+
+        <div class="modal-footer-bar">
+          <button type="button" class="btn-outline-accent" (click)="closeModal()">Cancelar</button>
+          <button type="submit" class="btn-accent" [disabled]="saving()">
+            @if (saving()) {
+              <span class="spinner-border spinner-border-sm me-2"></span>Guardando...
+            } @else {
+              <i class="bi bi-check-lg me-2"></i>{{ editingId() ? 'Guardar Cambios' : 'Crear Categoría' }}
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

@@ -1,0 +1,22 @@
+<header class="app-header">
+  <div class="header-title">
+    <i class="bi bi-scissors text-accent me-2"></i>
+    Barbería Pro
+  </div>
+
+  <div class="header-actions">
+    <button class="btn-outline-accent btn-notification">
+      <i class="bi bi-bell"></i>
+    </button>
+
+    @if (user()) {
+      <div class="user-badge">
+        <div class="avatar">{{ user()!.fullName[0] }}</div>
+        <div class="user-info">
+          <div class="user-name">{{ user()!.fullName }}</div>
+          <div class="user-role">{{ user()!.role }}</div>
+        </div>
+      </div>
+    }
+  </div>
+</header>

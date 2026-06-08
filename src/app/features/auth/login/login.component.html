@@ -1,0 +1,53 @@
+<div class="auth-container">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="logo-text">✂ BARBERIA PRO</div>
+      <div class="logo-sub">Sistema de Gestión Profesional</div>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()">
+      <div class="form-group">
+        <label class="form-label-dark">Correo Electrónico</label>
+        <input type="email" formControlName="email" class="form-control-dark"
+          placeholder="admin@barberia.com" autocomplete="email">
+        @if (form.get('email')?.invalid && form.get('email')?.touched) {
+          <div class="form-error">Email inválido</div>
+        }
+      </div>
+
+      <div class="form-group">
+        <label class="form-label-dark">Contraseña</label>
+        <div class="input-password-wrapper">
+          <input [type]="showPassword() ? 'text' : 'password'" formControlName="password"
+            class="form-control-dark form-control-dark--with-icon"
+            placeholder="••••••••" autocomplete="current-password">
+          <button type="button" class="btn-password-toggle" (click)="showPassword.set(!showPassword())">
+            <i [class]="showPassword() ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+          </button>
+        </div>
+        @if (form.get('password')?.invalid && form.get('password')?.touched) {
+          <div class="form-error">Contraseña requerida (mínimo 6 caracteres)</div>
+        }
+      </div>
+
+      @if (errorMessage()) {
+        <div class="alert-error">
+          <i class="bi bi-exclamation-circle me-2"></i>{{ errorMessage() }}
+        </div>
+      }
+
+      <button type="submit" class="btn-accent w-100 btn-submit" [disabled]="loading() || form.invalid">
+        @if (loading()) {
+          <span class="spinner-border spinner-border-sm me-2"></span>Ingresando...
+        } @else {
+          <i class="bi bi-box-arrow-in-right me-2"></i>Iniciar Sesión
+        }
+      </button>
+    </form>
+
+    <div class="divider"></div>
+    <p class="auth-footer-text">
+      ¿No tienes cuenta? <a routerLink="/auth/register" class="text-accent">Regístrate</a>
+    </p>
+  </div>
+</div>
