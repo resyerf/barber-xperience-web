@@ -56,6 +56,12 @@ export const routes: Routes = [
         data: { roles: ['Admin', 'Barber'] }
       },
       {
+        path: 'availability',
+        loadComponent: () => import('./features/availability/availability.component').then(m => m.AvailabilityComponent),
+        canActivate: [roleGuard],
+        data: { roles: ['Admin', 'Barber'] }
+      },
+      {
         path: 'reports',
         loadComponent: () => import('./features/reports/reports.component').then(m => m.ReportsComponent),
         canActivate: [roleGuard],

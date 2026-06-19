@@ -31,6 +31,7 @@ export class SidebarComponent {
     { path: '/categories', label: 'Categorías', icon: 'bi-tags', roles: ['Admin'] },
     { path: '/packages', label: 'Paquetes', icon: 'bi-box-seam', roles: ['Admin'] },
     { path: '/schedules', label: 'Horarios', icon: 'bi-clock', roles: ['Admin', 'Barber'] },
+    { path: '/availability', label: 'Mi Disponibilidad', icon: 'bi-calendar3', roles: ['Admin', 'Barber'] },
     { path: '/clients', label: 'Clientes', icon: 'bi-people', roles: ['Admin', 'Barber'] },
     { path: '/reports', label: 'Reportes', icon: 'bi-bar-chart-line', roles: ['Admin'] },
   ];

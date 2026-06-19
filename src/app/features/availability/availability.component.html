@@ -1,0 +1,180 @@
+<app-page-header
+  title="Mi Disponibilidad"
+  subtitle="Define los días y horarios en que estarás disponible">
+</app-page-header>
+
+<div class="page-container">
+
+  <!-- Selector de barbero (solo Admin) -->
+  <div class="card mb-4" *ngIf="isAdmin()">
+    <div class="card-body">
+      <label class="form-label">Selecciona un Barbero</label>
+      <select class="form-select form-select-dark" (change)="selectBarber($any($event.target).value)">
+        <option value="">-- Seleccionar --</option>
+        <option *ngFor="let b of barbers()" [value]="b.id">{{ b.fullName }}</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Sin barbero seleccionado -->
+  <app-empty-state
+    *ngIf="isAdmin() && !activeBarberId()"
+    icon="bi-calendar3"
+    title="Selecciona un barbero"
+    description="Elige un barbero para gestionar su disponibilidad">
+  </app-empty-state>
+
+  <!-- Calendario -->
+  <div *ngIf="activeBarberId()">
+
+    <!-- Cabecera del mes -->
+    <div class="availability-header">
+      <button class="btn btn-icon" (click)="prevMonth()">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+      <h3 class="month-title text-capitalize">{{ monthName() }}</h3>
+      <button class="btn btn-icon" (click)="nextMonth()">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+    </div>
+
+    <app-loading-spinner *ngIf="loading()"></app-loading-spinner>
+
+    <!-- Grid del calendario -->
+    <div class="calendar-grid" *ngIf="!loading()">
+      <!-- Encabezados días -->
+      <div class="calendar-day-header" *ngFor="let d of ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom']">{{ d }}</div>
+
+      <!-- Celdas -->
+      <ng-container *ngFor="let week of calendarWeeks()">
+        <div
+          *ngFor="let cell of week"
+          class="calendar-cell"
+          [class.other-month]="!cell.isCurrentMonth"
+          [class.past-day]="cell.isPast"
+          [class.has-blocks]="getBlocksForDate(cell.dateStr).length > 0">
+
+          <div class="cell-header">
+            <span class="day-number">{{ cell.dayNum }}</span>
+            <button
+              *ngIf="cell.isCurrentMonth && !cell.isPast"
+              class="btn-add-block"
+              title="Agregar disponibilidad"
+              (click)="openAddModal(cell.dateStr)">
+              <i class="bi bi-plus"></i>
+            </button>
+          </div>
+
+          <!-- Bloques del día -->
+          <div class="blocks-list">
+            <div
+              *ngFor="let block of getBlocksForDate(cell.dateStr)"
+              class="availability-block"
+              [class.deleting]="deleting() === block.id">
+
+              <div class="block-time">
+                <i class="bi bi-clock"></i>
+                {{ block.startTime.substring(0, 5) }} – {{ block.endTime.substring(0, 5) }}
+              </div>
+              <div class="block-note" *ngIf="block.note">{{ block.note }}</div>
+
+              <div class="block-actions" *ngIf="!cell.isPast">
+                <button class="btn-block-action" title="Editar" (click)="openEditModal(block)">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn-block-action text-warning" title="Salida anticipada" (click)="openShrinkModal(block)">
+                  <i class="bi bi-scissors"></i>
+                </button>
+                <button
+                  class="btn-block-action text-danger"
+                  title="Eliminar"
+                  *ngIf="showConfirmDelete() !== block.id"
+                  (click)="confirmDelete(block.id)">
+                  <i class="bi bi-trash"></i>
+                </button>
+                <ng-container *ngIf="showConfirmDelete() === block.id">
+                  <button class="btn-block-action text-danger" (click)="deleteBlock(block.id)" title="Confirmar">
+                    <i class="bi bi-check-lg"></i>
+                  </button>
+                  <button class="btn-block-action" (click)="cancelDelete()" title="Cancelar">
+                    <i class="bi bi-x-lg"></i>
+                  </button>
+                </ng-container>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+    </div>
+
+    <!-- Leyenda -->
+    <div class="calendar-legend mt-3">
+      <span class="legend-item"><span class="legend-dot available"></span> Con disponibilidad</span>
+      <span class="legend-item"><span class="legend-dot empty"></span> Sin disponibilidad</span>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Crear / Editar bloque -->
+<div class="modal-backdrop" *ngIf="showModal()" (click)="closeModal()"></div>
+<div class="modal-panel" *ngIf="showModal()">
+  <div class="modal-header">
+    <h5>{{ editingBlock() ? 'Editar bloque' : 'Agregar disponibilidad' }}</h5>
+    <button class="btn-close-modal" (click)="closeModal()"><i class="bi bi-x-lg"></i></button>
+  </div>
+  <div class="modal-body">
+    <p class="modal-date-label">
+      <i class="bi bi-calendar3 me-2"></i>{{ modalDate() }}
+    </p>
+    <form [formGroup]="blockForm" (ngSubmit)="saveBlock()">
+      <div class="row g-3">
+        <div class="col-6">
+          <label class="form-label">Hora inicio</label>
+          <input type="time" class="form-control form-control-dark" formControlName="startTime">
+        </div>
+        <div class="col-6">
+          <label class="form-label">Hora fin</label>
+          <input type="time" class="form-control form-control-dark" formControlName="endTime">
+        </div>
+        <div class="col-12">
+          <label class="form-label">Nota (opcional)</label>
+          <input type="text" class="form-control form-control-dark" formControlName="note" placeholder="Ej: Solo cortes, sin barba">
+        </div>
+      </div>
+      <div class="modal-footer-actions mt-4">
+        <button type="button" class="btn btn-outline-secondary" (click)="closeModal()">Cancelar</button>
+        <button type="submit" class="btn btn-accent" [disabled]="blockForm.invalid || saving()">
+          <span *ngIf="saving()" class="spinner-border spinner-border-sm me-2"></span>
+          {{ editingBlock() ? 'Actualizar' : 'Guardar' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Recorte por salida anticipada -->
+<div class="modal-backdrop" *ngIf="showShrinkModal()" (click)="closeShrinkModal()"></div>
+<div class="modal-panel" *ngIf="showShrinkModal()">
+  <div class="modal-header">
+    <h5><i class="bi bi-scissors me-2"></i>Salida anticipada</h5>
+    <button class="btn-close-modal" (click)="closeShrinkModal()"><i class="bi bi-x-lg"></i></button>
+  </div>
+  <div class="modal-body">
+    <p class="text-muted mb-3">
+      Bloque actual:
+      <strong>{{ shrinkingBlock()?.startTime?.substring(0,5) }} – {{ shrinkingBlock()?.endTime?.substring(0,5) }}</strong>
+    </p>
+    <p class="mb-3">Indica hasta qué hora estarás disponible hoy. Las reservas posteriores a ese horario quedarán sin cobertura.</p>
+    <form [formGroup]="shrinkForm" (ngSubmit)="confirmShrink()">
+      <label class="form-label">Nueva hora de salida</label>
+      <input type="time" class="form-control form-control-dark" formControlName="newEndTime">
+      <div class="modal-footer-actions mt-4">
+        <button type="button" class="btn btn-outline-secondary" (click)="closeShrinkModal()">Cancelar</button>
+        <button type="submit" class="btn btn-warning" [disabled]="shrinkForm.invalid || saving()">
+          <span *ngIf="saving()" class="spinner-border spinner-border-sm me-2"></span>
+          Confirmar salida
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

@@ -9,3 +9,4 @@ export * from './reservation.model';
 export * from './client.model';
 export * from './dashboard.model';
 export * from './agenda.model';
+export * from './availability.model';
